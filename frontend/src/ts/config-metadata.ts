@@ -198,6 +198,11 @@ export const configMetadata: ConfigMetadataObject = {
     displayString: "blind mode",
     changeRequiresRestart: false,
   },
+  speakWords: {
+    icon: "fa-volume-up",
+    displayString: "speak words",
+    changeRequiresRestart: false,
+  },
   alwaysShowWordsHistory: {
     icon: "fa-align-left",
     displayString: "always show words history",

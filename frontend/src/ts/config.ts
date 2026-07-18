@@ -293,6 +293,10 @@ export function setBlindMode(blind: boolean, nosave?: boolean): boolean {
   return genericSet("blindMode", blind, nosave);
 }
 
+export function setSpeakWords(speak: boolean, nosave?: boolean): boolean {
+  return genericSet("speakWords", speak, nosave);
+}
+
 export function setAccountChart(
   array: ConfigSchemas.AccountChart,
   nosave?: boolean

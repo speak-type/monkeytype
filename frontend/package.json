@@ -80,6 +80,7 @@
   },
   "dependencies": {
     "@date-fns/utc": "1.2.0",
+    "@mintplex-labs/piper-tts-web": "1.0.4",
     "@monkeytype/contracts": "workspace:*",
     "@monkeytype/funbox": "workspace:*",
     "@monkeytype/util": "workspace:*",

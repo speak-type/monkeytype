@@ -213,6 +213,11 @@ async function initGroups(): Promise<void> {
     UpdateConfig.setBlindMode,
     "button"
   );
+  groups["speakWords"] = new SettingsGroup(
+    "speakWords",
+    UpdateConfig.setSpeakWords,
+    "button"
+  );
   groups["quickEnd"] = new SettingsGroup(
     "quickEnd",
     UpdateConfig.setQuickEnd,

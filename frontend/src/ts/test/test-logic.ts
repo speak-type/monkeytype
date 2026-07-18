@@ -39,6 +39,7 @@ import * as MonkeyPower from "../elements/monkey-power";
 import * as ActivePage from "../states/active-page";
 import * as TestInput from "./test-input";
 import * as TestWords from "./test-words";
+import * as Speech from "../controllers/speech-controller";
 import * as WordsGenerator from "./words-generator";
 import * as TestState from "./test-state";
 import * as ModesNotice from "../elements/modes-notice";
@@ -136,6 +137,11 @@ export function startTest(now: number): boolean {
   //use a recursive self-adjusting timer to avoid time drift
   TestStats.setStart(now);
   void TestTimer.start();
+
+  if (Config.speakWords && Config.mode !== "zen") {
+    void Speech.speak(TestWords.words.getCurrent());
+  }
+
   return true;
 }
 

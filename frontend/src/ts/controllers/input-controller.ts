@@ -10,6 +10,7 @@ import * as LiveAcc from "../test/live-acc";
 import * as LiveBurst from "../test/live-burst";
 import * as Funbox from "../test/funbox/funbox";
 import * as Sound from "./sound-controller";
+import * as Speech from "./speech-controller";
 import * as Caret from "../test/caret";
 import * as ManualRestart from "../test/manual-restart-tracker";
 import * as CustomText from "../test/custom-text";
@@ -295,6 +296,10 @@ async function handleSpace(): Promise<void> {
   if (TestLogic.areAllTestWordsGenerated() && isLastWord) {
     void TestLogic.finish();
     return;
+  }
+
+  if (Config.speakWords && Config.mode !== "zen") {
+    void Speech.speak(TestWords.words.getCurrent());
   }
 
   let wordLength: number;

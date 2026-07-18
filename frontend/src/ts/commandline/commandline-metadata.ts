@@ -210,6 +210,11 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
       options: "fromSchema",
     },
   },
+  speakWords: {
+    subgroup: {
+      options: "fromSchema",
+    },
+  },
   alwaysShowWordsHistory: {
     subgroup: {
       options: "fromSchema",
