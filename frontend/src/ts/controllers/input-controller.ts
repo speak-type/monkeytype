@@ -299,7 +299,7 @@ async function handleSpace(): Promise<void> {
   }
 
   if (Config.speakWords && Config.mode !== "zen") {
-    void Speech.speak(TestWords.words.getCurrent());
+    void Speech.speak(TestWords.words.getCurrent(), Config.language);
   }
 
   let wordLength: number;

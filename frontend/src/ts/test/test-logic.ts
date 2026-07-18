@@ -139,7 +139,7 @@ export function startTest(now: number): boolean {
   void TestTimer.start();
 
   if (Config.speakWords && Config.mode !== "zen") {
-    void Speech.speak(TestWords.words.getCurrent());
+    void Speech.speak(TestWords.words.getCurrent(), Config.language);
   }
 
   return true;
