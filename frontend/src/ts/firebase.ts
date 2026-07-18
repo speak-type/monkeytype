@@ -72,6 +72,9 @@ export async function init(callback: ReadyCallback): Promise<void> {
     Auth = undefined;
     console.error("Authentication failed to initialize", e);
     await callback(false, null);
+    // Resolve so boot (ready.ts awaits authPromise) completes even when auth
+    // is unavailable, e.g. missing/invalid firebase-config in local dev.
+    resolveAuthPromise();
     if (isDevEnvironment()) {
       Notifications.addPSA(
         createErrorMessage(e, "Authentication uninitialized") +

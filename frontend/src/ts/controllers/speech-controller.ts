@@ -7,6 +7,17 @@ import * as Notifications from "../elements/notifications";
 
 const VOICE_ID = "en_US-hfc_female-medium";
 
+// The library's default ONNX runtime base (cdnjs 1.18.0) does not host the
+// `.jsep.mjs` files it requests, so WASM init fails. Point it at a version that
+// ships those files. Piper phonemizer WASM keeps the library defaults.
+const PIPER_WASM_BASE =
+  "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize";
+const WASM_PATHS = {
+  onnxWasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/",
+  piperData: `${PIPER_WASM_BASE}.data`,
+  piperWasm: `${PIPER_WASM_BASE}.wasm`,
+};
+
 let session: TtsSessionType | null = null;
 let initPromise: Promise<TtsSessionType | null> | null = null;
 let currentAudio: HTMLAudioElement | null = null;
@@ -22,6 +33,7 @@ async function getSession(): Promise<TtsSessionType | null> {
       let notified = false;
       const created = await TtsSession.create({
         voiceId: VOICE_ID,
+        wasmPaths: WASM_PATHS,
         progress: (p): void => {
           if (!notified && p.total > 0 && p.loaded < p.total) {
             notified = true;
