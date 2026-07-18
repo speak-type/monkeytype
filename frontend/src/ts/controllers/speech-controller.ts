@@ -8,12 +8,13 @@ import * as Notifications from "../elements/notifications";
 const VOICE_ID = "en_US-hfc_female-medium";
 
 // The library's default ONNX runtime base (cdnjs 1.18.0) does not host the
-// `.jsep.mjs` files it requests, so WASM init fails. Point it at a version that
-// ships those files. Piper phonemizer WASM keeps the library defaults.
+// files it requests, and its version must match the onnxruntime-web the
+// library resolves as a peer dependency (1.27.0) or the WASM ABI mismatches
+// ("e.getValue is not a function"). Piper phonemizer WASM keeps library defaults.
 const PIPER_WASM_BASE =
   "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize";
 const WASM_PATHS = {
-  onnxWasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/",
+  onnxWasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/",
   piperData: `${PIPER_WASM_BASE}.data`,
   piperWasm: `${PIPER_WASM_BASE}.wasm`,
 };
