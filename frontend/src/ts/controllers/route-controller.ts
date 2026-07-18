@@ -1,27 +1,19 @@
 import * as PageController from "./page-controller";
-import * as TestUI from "../test/test-ui";
-import * as PageTransition from "../states/page-transition";
-import { isAuthAvailable, isAuthenticated } from "../firebase";
+import * as PageTransition from "../legacy-states/page-transition";
+import { isAuthAvailable } from "../firebase";
+import { isAuthenticated } from "../states/core";
 import { isFunboxActive } from "../test/funbox/list";
 import * as TestState from "../test/test-state";
-import * as Notifications from "../elements/notifications";
-import { LoadingOptions } from "../pages/page";
+import { showNoticeNotification } from "../states/notifications";
+import { navigationEvent, type NavigateOptions } from "../events/navigation";
+import { authEvent } from "../events/auth";
+import { isTestActive } from "../states/test";
 
 //source: https://www.youtube.com/watch?v=OstALBk-jTc
 // https://www.youtube.com/watch?v=OstALBk-jTc
 
-//this will be used in tribe
-type NavigateOptions = {
-  force?: boolean;
-  empty?: boolean;
-  data?: unknown;
-  overrideLoadingOptions?: LoadingOptions;
-};
-
 function pathToRegex(path: string): RegExp {
-  return new RegExp(
-    "^" + path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)") + "$"
-  );
+  return new RegExp(`^${path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)")}$`);
 }
 
 function getParams(match: {
@@ -30,7 +22,7 @@ function getParams(match: {
 }): Record<string, string> {
   const values = match.result.slice(1);
   const keys = Array.from(match.route.path.matchAll(/:(\w+)/g)).map(
-    (result) => result[1]
+    (result) => result[1],
   );
 
   const a = keys.map((key, index) => [key, values[index]]);
@@ -41,17 +33,18 @@ type Route = {
   path: string;
   load: (
     params: Record<string, string>,
-    navigateOptions: NavigateOptions
+    navigateOptions: NavigateOptions,
   ) => Promise<void>;
 };
 
 const route404: Route = {
   path: "404",
-  load: async () => {
-    await PageController.change("404");
+  load: async (_params, options) => {
+    await PageController.change("404", options);
   },
 };
 
+// NOTE: whenever adding a route add the pathname to the `firebase.json` rewrite rule
 const routes: Route[] = [
   {
     path: "/",
@@ -144,34 +137,55 @@ const routes: Route[] = [
       });
     },
   },
+  {
+    path: "/friends",
+    load: async (_params, options) => {
+      if (!isAuthAvailable()) {
+        await navigate("/", options);
+        return;
+      }
+      if (!isAuthenticated()) {
+        await navigate("/login", options);
+        return;
+      }
+
+      await PageController.change("friends", options);
+    },
+  },
 ];
 
 export async function navigate(
   url = window.location.pathname +
     window.location.search +
     window.location.hash,
-  options = {} as NavigateOptions
+  options = {} as NavigateOptions,
 ): Promise<void> {
   if (
     !options.force &&
-    (TestUI.testRestarting || TestUI.resultCalculating || PageTransition.get())
+    (TestState.testRestarting ||
+      TestState.resultCalculating ||
+      PageTransition.get())
   ) {
     console.debug(
       `navigate: ${url} ignored, page is busy (testRestarting: ${
-        TestUI.testRestarting
+        TestState.testRestarting
       }, resultCalculating: ${
-        TestUI.resultCalculating
-      }, pageTransition: ${PageTransition.get()})`
+        TestState.resultCalculating
+      }, pageTransition: ${PageTransition.get()})`,
     );
     return;
   }
 
   const noQuit = isFunboxActive("no_quit");
-  if (TestState.isActive && noQuit) {
-    Notifications.add("No quit funbox is active. Please finish the test.", 0, {
-      important: true,
-    });
-    event?.preventDefault();
+  if (isTestActive() && noQuit) {
+    showNoticeNotification(
+      "No quit funbox is active. Please finish the test.",
+      {
+        important: true,
+      },
+    );
+    //todo: figure out if this was ever used
+    // event?.preventDefault();
     return;
   }
 
@@ -206,7 +220,12 @@ async function router(options = {} as NavigateOptions): Promise<void> {
   };
 
   if (match === undefined) {
-    await route404.load({}, {});
+    await route404.load(
+      {},
+      {
+        force: true,
+      },
+    );
     return;
   }
 
@@ -225,4 +244,41 @@ document.addEventListener("DOMContentLoaded", () => {
       void navigate(target.href);
     }
   });
+});
+
+navigationEvent.subscribe(({ url, options }) => {
+  void navigate(url, options);
+});
+
+authEvent.subscribe((event) => {
+  if (event.type === "authStateChanged") {
+    let keyframes = [
+      {
+        percentage: 90,
+        durationMs: 1000,
+        text: "Downloading user data...",
+      },
+    ];
+
+    //undefined means navigate to whatever the current window.location.pathname is
+    void navigate(undefined, {
+      force: true,
+      loadingOptions: {
+        loadingMode: () => {
+          if (event.data.isUserSignedIn) {
+            return "sync";
+          } else {
+            return "none";
+          }
+        },
+        loadingPromise: async () => {
+          await event.data.loadPromise;
+        },
+        style: "bar",
+        keyframes: keyframes,
+      },
+    }).finally(() => {
+      document.body.classList.remove("loading");
+    });
+  }
 });

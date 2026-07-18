@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { RequireConfiguration } from "@monkeytype/contracts/require-configuration/index";
-import { verifyRequiredConfiguration } from "../../src/middlewares/configuration";
 import { Configuration } from "@monkeytype/schemas/configuration";
 import { Response } from "express";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TsRestRequestWithContext } from "../../src/api/types";
+import { verifyRequiredConfiguration } from "../../src/middlewares/configuration";
 import MonkeyError from "../../src/utils/error";
-import { TsRestRequest } from "../../src/api/types";
 import { enableMonkeyErrorExpects } from "../__testData__/monkey-error";
 
 enableMonkeyErrorExpects();
@@ -21,181 +21,181 @@ describe("configuration middleware", () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it("should pass without requireConfiguration", async () => {
+  it("should pass without requireConfiguration", () => {
     //GIVEN
     const req = { tsRestRoute: { metadata: {} } } as any;
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith();
   });
-  it("should pass for enabled configuration", async () => {
+  it("should pass for enabled configuration", () => {
     //GIVEN
     const req = givenRequest({ path: "maintenance" }, { maintenance: true });
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith();
   });
-  it("should pass for enabled configuration with complex path", async () => {
+  it("should pass for enabled configuration with complex path", () => {
     //GIVEN
     const req = givenRequest(
       { path: "users.xp.streak.enabled" },
-      { users: { xp: { streak: { enabled: true } as any } as any } as any }
+      { users: { xp: { streak: { enabled: true } as any } as any } as any },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith();
   });
-  it("should fail for disabled configuration", async () => {
+  it("should fail for disabled configuration", () => {
     //GIVEN
     const req = givenRequest({ path: "maintenance" }, { maintenance: false });
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
       expect.toMatchMonkeyError(
-        new MonkeyError(503, "This endpoint is currently unavailable.")
-      )
+        new MonkeyError(503, "This endpoint is currently unavailable."),
+      ),
     );
   });
-  it("should fail for disabled configuration and custom message", async () => {
+  it("should fail for disabled configuration and custom message", () => {
     //GIVEN
     const req = givenRequest(
       { path: "maintenance", invalidMessage: "Feature not enabled." },
-      { maintenance: false }
+      { maintenance: false },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
-      expect.toMatchMonkeyError(new MonkeyError(503, "Feature not enabled."))
+      expect.toMatchMonkeyError(new MonkeyError(503, "Feature not enabled.")),
     );
   });
-  it("should fail for invalid path", async () => {
+  it("should fail for invalid path", () => {
     //GIVEN
     const req = givenRequest({ path: "invalid.path" as any }, {});
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
       expect.toMatchMonkeyError(
-        new MonkeyError(500, 'Invalid configuration path: "invalid.path"')
-      )
+        new MonkeyError(500, 'Invalid configuration path: "invalid.path"'),
+      ),
     );
   });
-  it("should fail for undefined value", async () => {
+  it("should fail for undefined value", () => {
     //GIVEN
     const req = givenRequest(
       { path: "admin.endpointsEnabled" },
-      { admin: {} as any }
+      { admin: {} as any },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
       expect.toMatchMonkeyError(
         new MonkeyError(
           500,
-          'Required configuration doesnt exist: "admin.endpointsEnabled"'
-        )
-      )
+          'Required configuration doesnt exist: "admin.endpointsEnabled"',
+        ),
+      ),
     );
   });
-  it("should fail for null value", async () => {
+  it("should fail for null value", () => {
     //GIVEN
     const req = givenRequest(
       { path: "admin.endpointsEnabled" },
-      { admin: { endpointsEnabled: null as any } }
+      { admin: { endpointsEnabled: null as any } },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
       expect.toMatchMonkeyError(
         new MonkeyError(
           500,
-          'Required configuration doesnt exist: "admin.endpointsEnabled"'
-        )
-      )
+          'Required configuration doesnt exist: "admin.endpointsEnabled"',
+        ),
+      ),
     );
   });
-  it("should fail for non booean value", async () => {
+  it("should fail for non booean value", () => {
     //GIVEN
     const req = givenRequest(
       { path: "admin.endpointsEnabled" },
-      { admin: { endpointsEnabled: "disabled" as any } }
+      { admin: { endpointsEnabled: "disabled" as any } },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
       expect.toMatchMonkeyError(
         new MonkeyError(
           500,
-          'Required configuration is not a boolean: "admin.endpointsEnabled"'
-        )
-      )
+          'Required configuration is not a boolean: "admin.endpointsEnabled"',
+        ),
+      ),
     );
   });
-  it("should pass for multiple configurations", async () => {
+  it("should pass for multiple configurations", () => {
     //GIVEN
     const req = givenRequest(
       [{ path: "maintenance" }, { path: "admin.endpointsEnabled" }],
-      { maintenance: true, admin: { endpointsEnabled: true } }
+      { maintenance: true, admin: { endpointsEnabled: true } },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith();
   });
-  it("should fail for multiple configurations", async () => {
+  it("should fail for multiple configurations", () => {
     //GIVEN
     const req = givenRequest(
       [
         { path: "maintenance", invalidMessage: "maintenance mode" },
         { path: "admin.endpointsEnabled", invalidMessage: "admin disabled" },
       ],
-      { maintenance: true, admin: { endpointsEnabled: false } }
+      { maintenance: true, admin: { endpointsEnabled: false } },
     );
 
     //WHEN
-    await handler(req, res, next);
+    handler(req, res, next);
 
     //THEN
     expect(next).toHaveBeenCalledWith(
-      expect.toMatchMonkeyError(new MonkeyError(503, "admin disabled"))
+      expect.toMatchMonkeyError(new MonkeyError(503, "admin disabled")),
     );
   });
 });
 
 function givenRequest(
   requireConfiguration: RequireConfiguration | RequireConfiguration[],
-  configuration: Partial<Configuration>
-): TsRestRequest {
+  configuration: Partial<Configuration>,
+): TsRestRequestWithContext {
   return {
     tsRestRoute: { metadata: { requireConfiguration } },
-    ctx: { configuration },
-  } as any;
+    ctx: { configuration: configuration },
+  } as TsRestRequestWithContext;
 }

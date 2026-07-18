@@ -52,7 +52,7 @@ describe("local-storage-with-schema.ts", () => {
 
         expect(localStorage.setItem).toHaveBeenCalledWith(
           "config",
-          JSON.stringify(defaultObject)
+          JSON.stringify(defaultObject),
         );
         expect(res).toBe(true);
       });
@@ -75,6 +75,7 @@ describe("local-storage-with-schema.ts", () => {
 
         const update = { ...defaultObject, fontSize: 5 };
         ls.set(update);
+        getItemMock.mockReset();
 
         expect(ls.get()).toStrictEqual(update);
 
@@ -83,6 +84,7 @@ describe("local-storage-with-schema.ts", () => {
 
       it("should get last valid value if schema is incorrect", () => {
         ls.set(defaultObject);
+        getItemMock.mockReset();
 
         ls.set({ hi: "hello" } as any);
 
@@ -90,6 +92,15 @@ describe("local-storage-with-schema.ts", () => {
 
         expect(setItemMock).toHaveBeenCalledOnce();
         expect(getItemMock).not.toHaveBeenCalled();
+      });
+
+      it("should not set if value has not changed", () => {
+        ls.set(defaultObject);
+        setItemMock.mockReset();
+
+        ls.set(defaultObject);
+
+        expect(setItemMock).not.toHaveBeenCalled();
       });
     });
 
@@ -116,7 +127,7 @@ describe("local-storage-with-schema.ts", () => {
         expect(getItemMock).toHaveBeenCalledWith("config");
         expect(setItemMock).toHaveBeenCalledWith(
           "config",
-          JSON.stringify(defaultObject)
+          JSON.stringify(defaultObject),
         );
         expect(res).toEqual(defaultObject);
 
@@ -152,7 +163,7 @@ describe("local-storage-with-schema.ts", () => {
         expect(getItemMock).toHaveBeenCalledWith("config");
         expect(setItemMock).toHaveBeenCalledWith(
           "config",
-          JSON.stringify(defaultObject)
+          JSON.stringify(defaultObject),
         );
         expect(res).toEqual(defaultObject);
 
@@ -172,6 +183,7 @@ describe("local-storage-with-schema.ts", () => {
           fontSize: 1,
         };
 
+        // oxlint-disable-next-line typescript/no-unsafe-return
         const migrateFnMock = vi.fn(() => migrated as any);
 
         const ls = new LocalStorageWithSchema({
@@ -186,17 +198,67 @@ describe("local-storage-with-schema.ts", () => {
         expect(getItemMock).toHaveBeenCalledWith("config");
         expect(migrateFnMock).toHaveBeenCalledWith(
           existingValue,
-          expect.any(Array)
+          expect.any(Array),
         );
         expect(setItemMock).toHaveBeenCalledWith(
           "config",
-          JSON.stringify(migrated)
+          JSON.stringify(migrated),
         );
         expect(res).toEqual(migrated);
 
         //cache used
         expect(ls.get()).toEqual(migrated);
         expect(getItemMock).toHaveBeenCalledOnce();
+      });
+
+      it("should return a clone so mutating the result does not affect the cache", () => {
+        getItemMock.mockReturnValue(JSON.stringify(defaultObject));
+
+        const first = ls.get();
+        first.fontSize = 999;
+        first.mode = "time";
+
+        const second = ls.get();
+        expect(second).toEqual(defaultObject);
+        // only one call to getItem — second get() used cache
+        expect(getItemMock).toHaveBeenCalledOnce();
+      });
+
+      it("should return a clone of the fallback so mutating it does not affect the cache", () => {
+        getItemMock.mockReturnValue(null);
+
+        const first = ls.get();
+        first.punctuation = false;
+        first.fontSize = 0;
+
+        const second = ls.get();
+        expect(second).toEqual(defaultObject);
+        expect(getItemMock).toHaveBeenCalledOnce();
+      });
+
+      it("should return a new object reference on each get() call", () => {
+        getItemMock.mockReturnValue(JSON.stringify(defaultObject));
+
+        const first = ls.get();
+        const second = ls.get();
+
+        expect(first).toEqual(second);
+        expect(first).not.toBe(second);
+      });
+
+      it("should not skip set() after caller mutates a previously returned value", () => {
+        ls.set(defaultObject);
+        setItemMock.mockReset();
+
+        // get a clone, mutate it, then set it back — should detect the change
+        const value = ls.get();
+        value.fontSize = 42;
+        ls.set(value);
+
+        expect(setItemMock).toHaveBeenCalledWith(
+          "config",
+          JSON.stringify({ ...defaultObject, fontSize: 42 }),
+        );
       });
 
       it("should revert to fallback if migration ran but schema still failed", () => {
@@ -210,6 +272,7 @@ describe("local-storage-with-schema.ts", () => {
           fontSize: 1,
         };
 
+        // oxlint-disable-next-line typescript/no-unsafe-return
         const migrateFnMock = vi.fn(() => invalidMigrated as any);
 
         const ls = new LocalStorageWithSchema({
@@ -224,11 +287,11 @@ describe("local-storage-with-schema.ts", () => {
         expect(getItemMock).toHaveBeenCalledWith("config");
         expect(migrateFnMock).toHaveBeenCalledWith(
           existingValue,
-          expect.any(Array)
+          expect.any(Array),
         );
         expect(setItemMock).toHaveBeenCalledWith(
           "config",
-          JSON.stringify(defaultObject)
+          JSON.stringify(defaultObject),
         );
         expect(res).toEqual(defaultObject);
 

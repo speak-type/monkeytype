@@ -1,42 +1,51 @@
 import Page from "./page";
 import * as Skeleton from "../utils/skeleton";
+import { qs, qsr } from "../utils/dom";
+
+const pageEl = qs(".page.pageLoading");
+const barEl = pageEl?.qs(".bar");
+const errorEl = pageEl?.qs(".error");
+const spinnerEl = pageEl?.qs(".spinner");
+const textEl = pageEl?.qs(".text");
 
 export async function updateBar(
   percentage: number,
-  duration: number
+  duration: number,
 ): Promise<void> {
-  return new Promise((resolve) => {
-    $(".pageLoading .fill")
-      .stop(true, false)
-      .animate(
-        {
-          width: percentage + "%",
-        },
-        duration,
-        () => {
-          resolve();
-        }
-      );
+  await barEl?.qs(".fill")?.promiseAnimate({
+    width: `${percentage}%`,
+    duration,
   });
 }
 
 export function updateText(text: string): void {
-  $(".pageLoading .text").text(text);
+  textEl?.show()?.setHtml(text);
 }
 
 export function showSpinner(): void {
-  $(".pageLoading .preloader .icon").removeClass("hidden");
-  $(".pageLoading .preloader .barWrapper").addClass("hidden");
+  barEl?.hide();
+  errorEl?.hide();
+  spinnerEl?.show();
+  textEl?.hide();
+}
+
+export function showError(): void {
+  barEl?.hide();
+  spinnerEl?.hide();
+  errorEl?.show();
+  textEl?.hide();
 }
 
 export async function showBar(): Promise<void> {
-  $(".pageLoading .preloader .icon").addClass("hidden");
-  $(".pageLoading .preloader .barWrapper").removeClass("hidden");
+  barEl?.show();
+  errorEl?.hide();
+  spinnerEl?.hide();
+  textEl?.hide();
 }
 
 export const page = new Page({
   id: "loading",
-  element: $(".page.pageLoading"),
+  element: qsr(".page.pageLoading"),
   path: "/",
   afterHide: async (): Promise<void> => {
     Skeleton.remove("pageLoading");

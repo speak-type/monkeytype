@@ -4,15 +4,15 @@ import { layoutKeyToKeycode } from "../../src/ts/utils/key-converter";
 
 const isoDvorak = JSON.parse(
   readFileSync(
-    import.meta.dirname + "/../../static/layouts/swedish_dvorak.json",
-    "utf-8"
-  )
+    `${import.meta.dirname}/../../static/layouts/swedish_dvorak.json`,
+    "utf-8",
+  ),
 );
 const dvorak = JSON.parse(
   readFileSync(
-    import.meta.dirname + "/../../static/layouts/dvorak.json",
-    "utf-8"
-  )
+    `${import.meta.dirname}/../../static/layouts/dvorak.json`,
+    "utf-8",
+  ),
 );
 
 describe("key-converter", () => {

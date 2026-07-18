@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-export function setupCommonMocks() {
+export function setupCommonMocks(): void {
   vi.mock("../src/utils/logger", () => ({
     __esModule: true,
     default: {
@@ -28,7 +28,7 @@ export function setupCommonMocks() {
       auth: (): unknown => ({
         verifyIdToken: (
           _token: string,
-          _checkRevoked: boolean
+          _checkRevoked: boolean,
         ): unknown /* Promise<DecodedIdToken> */ =>
           Promise.resolve({
             aud: "mockFirebaseProjectId",

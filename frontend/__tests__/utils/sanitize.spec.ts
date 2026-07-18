@@ -29,11 +29,11 @@ describe("sanitize function", () => {
       const sanitized = expect(
         expected.numbers === false
           ? () => sanitize(numberArraySchema, input)
-          : sanitize(numberArraySchema, input)
+          : sanitize(numberArraySchema, input),
       );
 
       if (expected.numbers === false) {
-        sanitized.toThrowError();
+        sanitized.toThrow();
       } else if (expected.numbers === true) {
         sanitized.toStrictEqual(input);
       } else {
@@ -46,17 +46,17 @@ describe("sanitize function", () => {
         const sanitized = expect(
           expected.numbersMin === false
             ? () => sanitize(numbersArrayMin2Schema, input)
-            : sanitize(numbersArrayMin2Schema, input)
+            : sanitize(numbersArrayMin2Schema, input),
         );
 
         if (expected.numbersMin === false) {
-          sanitized.toThrowError();
+          sanitized.toThrow();
         } else if (expected.numbersMin === true) {
           sanitized.toStrictEqual(input);
         } else {
           sanitized.toStrictEqual(expected.numbersMin);
         }
-      }
+      },
     );
   });
   describe("objects", () => {
@@ -151,17 +151,29 @@ describe("sanitize function", () => {
           optional: { name: "Alice", age: 23 },
         },
       },
+      {
+        input: {
+          name: "Alice",
+          //results in two errors on the same path. array with invalid value and not enough items
+          enumArray: ["invalid" as any],
+        },
+        expected: {
+          mandatory: false,
+          partial: { name: "Alice" }, //enumArray is removed
+          optional: false,
+        },
+      },
     ];
 
     it.for(testCases)("object mandatory with $input", ({ input, expected }) => {
       const sanitized = expect(
         expected.mandatory === false
           ? () => sanitize(objectSchema, input as any)
-          : sanitize(objectSchema, input as any)
+          : sanitize(objectSchema, input as any),
       );
 
       if (expected.mandatory === false) {
-        sanitized.toThrowError();
+        sanitized.toThrow();
       } else if (expected.mandatory === true) {
         sanitized.toStrictEqual(input);
       } else {
@@ -174,27 +186,27 @@ describe("sanitize function", () => {
         const sanitized = expect(
           expected.partial === false
             ? () => sanitize(objectSchemaFullPartial, input as any)
-            : sanitize(objectSchemaFullPartial, input as any)
+            : sanitize(objectSchemaFullPartial, input as any),
         );
 
         if (expected.partial === false) {
-          sanitized.toThrowError();
+          sanitized.toThrow();
         } else if (expected.partial === true) {
           sanitized.toStrictEqual(input);
         } else {
           sanitized.toStrictEqual(expected.partial);
         }
-      }
+      },
     );
     it.for(testCases)("object optional with $input", ({ input, expected }) => {
       const sanitized = expect(
         expected.optional === false
           ? () => sanitize(objectSchemaWithOptional, input as any)
-          : sanitize(objectSchemaWithOptional, input as any)
+          : sanitize(objectSchemaWithOptional, input as any),
       );
 
       if (expected.optional === false) {
-        sanitized.toThrowError();
+        sanitized.toThrow();
       } else if (expected.optional === true) {
         sanitized.toStrictEqual(input);
       } else {
@@ -284,11 +296,11 @@ describe("sanitize function", () => {
       const sanitized = expect(
         expected.mandatory === false
           ? () => sanitize(nestedSchema, input as any)
-          : sanitize(nestedSchema, input as any)
+          : sanitize(nestedSchema, input as any),
       );
 
       if (expected.mandatory === false) {
-        sanitized.toThrowError();
+        sanitized.toThrow();
       } else if (expected.mandatory === true) {
         sanitized.toStrictEqual(input);
       } else {
@@ -299,11 +311,11 @@ describe("sanitize function", () => {
       const sanitized = expect(
         expected.partial === false
           ? () => sanitize(nestedSchemaFullPartial, input as any)
-          : sanitize(nestedSchemaFullPartial, input as any)
+          : sanitize(nestedSchemaFullPartial, input as any),
       );
 
       if (expected.partial === false) {
-        sanitized.toThrowError();
+        sanitized.toThrow();
       } else if (expected.partial === true) {
         sanitized.toStrictEqual(input);
       } else {
@@ -316,17 +328,17 @@ describe("sanitize function", () => {
         const sanitized = expect(
           expected.minArray === false
             ? () => sanitize(nestedSchemaWithMin2Array, input as any)
-            : sanitize(nestedSchemaWithMin2Array, input as any)
+            : sanitize(nestedSchemaWithMin2Array, input as any),
         );
 
         if (expected.minArray === false) {
-          sanitized.toThrowError();
+          sanitized.toThrow();
         } else if (expected.minArray === true) {
           sanitized.toStrictEqual(input);
         } else {
           sanitized.toStrictEqual(expected.minArray);
         }
-      }
+      },
     );
   });
 
@@ -365,8 +377,8 @@ describe("sanitize function", () => {
     } as any;
     expect(() => {
       sanitize(schema.required().strip(), obj);
-    }).toThrowError(
-      "unable to sanitize: name: Required, age: Required, tags: Required, enumArray: Required"
+    }).toThrow(
+      "unable to sanitize: name: Required, age: Required, tags: Required, enumArray: Required",
     );
   });
 });

@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import request from "supertest";
-import app from "../../../src/app";
+import { setup } from "../../__testData__/controller-test";
 import * as PublicDal from "../../../src/dal/public";
-const mockApp = request(app);
+
+const { mockApp } = setup();
 
 describe("PublicController", () => {
   describe("get speed histogram", () => {
@@ -31,7 +31,7 @@ describe("PublicController", () => {
       expect(getSpeedHistogramMock).toHaveBeenCalledWith(
         "english",
         "time",
-        "60"
+        "60",
       );
     });
 
@@ -40,7 +40,7 @@ describe("PublicController", () => {
         const response = await mockApp
           .get("/public/speedHistogram")
           .query({ language: "english", mode, mode2: "custom" });
-        expect(response.status, "for mode " + mode).toEqual(200);
+        expect(response.status, `for mode ${mode}`).toEqual(200);
       }
     });
 
@@ -61,7 +61,7 @@ describe("PublicController", () => {
           .get("/public/speedHistogram")
           .query({ language: "english", mode: "words", mode2 });
 
-        expect(response.status, "for mode2 " + mode2).toEqual(200);
+        expect(response.status, `for mode2 ${mode2}`).toEqual(200);
       }
     });
     it("fails for missing query", async () => {

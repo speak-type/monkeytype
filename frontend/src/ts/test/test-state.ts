@@ -1,35 +1,25 @@
-import { Challenge } from "../utils/json-data";
+import { promiseWithResolvers } from "../utils/misc";
+import { EventLog } from "./events/types";
 
-export let isRepeated = false;
-export let isPaceRepeat = false;
-export let isActive = false;
-export let activeChallenge: null | Challenge = null;
-export let savingEnabled = true;
 export let bailedOut = false;
-export let selectedQuoteId = 1;
+export let selectedQuoteId =
+  parseInt(localStorage.getItem("selectedQuoteId") ?? "1", 10) || 1;
 export let activeWordIndex = 0;
 export let testInitSuccess = true;
-export let removedUIWordCount = 0;
-export let lineScrollDistance = 0;
+export let isLanguageRightToLeft = false;
+export let isDirectionReversed = false;
+export let testRestarting = false;
+export let resultVisible = false;
+export let resultCalculating = false;
+export let koreanStatus = false;
+export let lastEventLog: EventLog | null = null;
 
-export function setRepeated(tf: boolean): void {
-  isRepeated = tf;
+export function setLastEventLog(log: EventLog): void {
+  lastEventLog = log;
 }
 
-export function setPaceRepeat(tf: boolean): void {
-  isPaceRepeat = tf;
-}
-
-export function setActive(tf: boolean): void {
-  isActive = tf;
-}
-
-export function setActiveChallenge(val: null | Challenge): void {
-  activeChallenge = val;
-}
-
-export function setSaving(val: boolean): void {
-  savingEnabled = val;
+export function setKoreanStatus(val: boolean): void {
+  koreanStatus = val;
 }
 
 export function setBailedOut(tf: boolean): void {
@@ -38,6 +28,7 @@ export function setBailedOut(tf: boolean): void {
 
 export function setSelectedQuoteId(id: number): void {
   selectedQuoteId = id;
+  localStorage.setItem("selectedQuoteId", id.toString());
 }
 
 export function setActiveWordIndex(index: number): void {
@@ -56,14 +47,35 @@ export function setTestInitSuccess(tf: boolean): void {
   testInitSuccess = tf;
 }
 
-export function setRemovedUIWordCount(val: number): void {
-  removedUIWordCount = val;
+export function setIsLanguageRightToLeft(rtl: boolean): void {
+  isLanguageRightToLeft = rtl;
 }
 
-export function incrementRemovedUIWordCount(by: number = 1): void {
-  removedUIWordCount += by;
+export function setIsDirectionReversed(val: boolean): void {
+  isDirectionReversed = val;
 }
 
-export function setLineScrollDistance(val: number): void {
-  lineScrollDistance = val;
+const {
+  promise: testRestartingPromise,
+  resolve: restartingResolve,
+  reset: resetTestRestarting,
+} = promiseWithResolvers();
+
+export { testRestartingPromise };
+
+export function setTestRestarting(val: boolean): void {
+  testRestarting = val;
+  if (val) {
+    resetTestRestarting();
+  } else {
+    restartingResolve();
+  }
+}
+
+export function setResultVisible(val: boolean): void {
+  resultVisible = val;
+}
+
+export function setResultCalculating(val: boolean): void {
+  resultCalculating = val;
 }

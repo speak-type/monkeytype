@@ -1,13 +1,17 @@
 import * as TestLogic from "../../test/test-logic";
 import * as TestUI from "../../test/test-ui";
 import * as PractiseWordsModal from "../../modals/practise-words";
-import * as Notifications from "../../elements/notifications";
-import * as TestInput from "../../test/test-input";
+import {
+  showErrorNotification,
+  showSuccessNotification,
+} from "../../states/notifications";
+import * as TestState from "../../test/test-state";
 import * as TestWords from "../../test/test-words";
-import Config from "../../config";
+import { Config } from "../../config/store";
 import * as PractiseWords from "../../test/practise-words";
 import { Command, CommandsSubgroup } from "../types";
 import * as TestScreenshot from "../../test/test-screenshot";
+import { getInputHistory } from "../../test/events/stats";
 
 const practiceSubgroup: CommandsSubgroup = {
   title: "Practice words...",
@@ -27,6 +31,16 @@ const practiceSubgroup: CommandsSubgroup = {
       display: "slow",
       exec: (): void => {
         PractiseWords.init("off", true);
+        TestLogic.restart({
+          practiseMissed: true,
+        });
+      },
+    },
+    {
+      id: "practiseWordsBoth",
+      display: "both",
+      exec: (): void => {
+        PractiseWords.init("words", true);
         TestLogic.restart({
           practiseMissed: true,
         });
@@ -53,7 +67,7 @@ const commands: Command[] = [
     alias: "restart start begin type test typing",
     icon: "fa-chevron-right",
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
     exec: (): void => {
       TestLogic.restart();
@@ -69,7 +83,7 @@ const commands: Command[] = [
       });
     },
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
   {
@@ -78,7 +92,7 @@ const commands: Command[] = [
     icon: "fa-exclamation-triangle",
     subgroup: practiceSubgroup,
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
   {
@@ -86,10 +100,10 @@ const commands: Command[] = [
     display: "Toggle word history",
     icon: "fa-align-left",
     exec: (): void => {
-      TestUI.toggleResultWords();
+      void TestUI.toggleResultWords();
     },
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
   {
@@ -103,7 +117,7 @@ const commands: Command[] = [
       }, 500);
     },
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
   {
@@ -117,7 +131,7 @@ const commands: Command[] = [
       }, 500);
     },
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
   {
@@ -125,23 +139,32 @@ const commands: Command[] = [
     display: "Copy words to clipboard",
     icon: "fa-copy",
     exec: (): void => {
-      const words = (
+      if (TestState.lastEventLog === null) {
+        showErrorNotification("No event log found!");
+        return;
+      }
+
+      const inputHistory = getInputHistory(TestState.lastEventLog);
+      const words =
         Config.mode === "zen"
-          ? TestInput.input.getHistory()
-          : TestWords.words.list.slice(0, TestInput.input.getHistory().length)
-      ).join(" ");
+          ? inputHistory.join("")
+          : TestWords.words
+              .get()
+              .slice(0, inputHistory.length)
+              .map((word) => word.textWithCommit)
+              .join("");
 
       navigator.clipboard.writeText(words).then(
         () => {
-          Notifications.add("Copied to clipboard", 1);
+          showSuccessNotification("Copied to clipboard");
         },
         () => {
-          Notifications.add("Failed to copy!", -1);
-        }
+          showErrorNotification("Failed to copy!");
+        },
       );
     },
     available: (): boolean => {
-      return TestUI.resultVisible;
+      return TestState.resultVisible;
     },
   },
 ];

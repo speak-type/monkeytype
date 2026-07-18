@@ -1,18 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import request from "supertest";
-import app from "../../../src/app";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { setup } from "../../__testData__/controller-test";
 import * as PresetDal from "../../../src/dal/preset";
 import { ObjectId } from "mongodb";
-import { mockBearerAuthentication } from "../../__testData__/auth";
-const mockApp = request(app);
-const uid = new ObjectId().toHexString();
-const mockAuth = mockBearerAuthentication(uid);
+
+const { mockApp, uid } = setup();
 
 describe("PresetController", () => {
-  beforeEach(() => {
-    mockAuth.beforeEach();
-  });
-
   describe("get presets", () => {
     const getPresetsMock = vi.spyOn(PresetDal, "getPresets");
 
@@ -40,8 +33,7 @@ describe("PresetController", () => {
           showAverage: "off",
         },
       };
-      //@ts-expect-error
-      getPresetsMock.mockResolvedValue([presetOne, presetTwo]);
+      getPresetsMock.mockResolvedValue([presetOne, presetTwo] as any);
 
       //WHEN
       const { body } = await mockApp
@@ -189,7 +181,7 @@ describe("PresetController", () => {
       });
       expect(addPresetMock).not.toHaveBeenCalled();
     });
-    it("should not fail with emtpy config", async () => {
+    it("should not fail with empty config", async () => {
       //GIVEN
 
       addPresetMock.mockResolvedValue({ presetId: "1" });
@@ -365,7 +357,7 @@ describe("PresetController", () => {
         },
       });
     });
-    it("should not fail with emtpy config", async () => {
+    it("should not fail with empty config", async () => {
       //GIVEN
 
       editPresetMock.mockResolvedValue({} as any);

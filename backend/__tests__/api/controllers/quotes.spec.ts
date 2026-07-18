@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import request from "supertest";
-import app from "../../../src/app";
+import { setup } from "../../__testData__/controller-test";
 import * as Configuration from "../../../src/init/configuration";
 import * as UserDal from "../../../src/dal/user";
 import * as NewQuotesDal from "../../../src/dal/new-quotes";
@@ -10,26 +9,20 @@ import * as ReportDal from "../../../src/dal/report";
 import * as LogsDal from "../../../src/dal/logs";
 import * as Captcha from "../../../src/utils/captcha";
 import { ObjectId } from "mongodb";
-import _ from "lodash";
 import { ApproveQuote } from "@monkeytype/schemas/quotes";
-import { mockBearerAuthentication } from "../../__testData__/auth";
 
-const mockApp = request(app);
+const { mockApp, uid } = setup();
 const configuration = Configuration.getCachedConfiguration();
-
-const uid = new ObjectId().toHexString();
-const mockAuth = mockBearerAuthentication(uid);
 
 describe("QuotesController", () => {
   const getPartialUserMock = vi.spyOn(UserDal, "getPartialUser");
   const logsAddLogMock = vi.spyOn(LogsDal, "addLog");
 
-  beforeEach(() => {
-    enableQuotes(true);
+  beforeEach(async () => {
+    await enableQuotes(true);
 
     const user = { quoteMod: true, name: "Bob" } as any;
     getPartialUserMock.mockClear().mockResolvedValue(user);
-    mockAuth.beforeEach();
     logsAddLogMock.mockClear().mockResolvedValue();
   });
 
@@ -135,7 +128,6 @@ describe("QuotesController", () => {
   describe("isSubmissionsEnabled", () => {
     it("should return for quotes enabled without authentication", async () => {
       //GIVEN
-      enableQuotes(true);
 
       //WHEN
       const { body } = await mockApp
@@ -149,6 +141,7 @@ describe("QuotesController", () => {
     });
     it("should return for quotes disabled without authentication", async () => {
       //GIVEN
+      await enableQuotes(false);
 
       //WHEN
       const { body } = await mockApp
@@ -156,8 +149,8 @@ describe("QuotesController", () => {
         .expect(200);
 
       expect(body).toEqual({
-        message: "Quote submission enabled",
-        data: { isEnabled: true },
+        message: "Quote submission disabled",
+        data: { isEnabled: false },
       });
     });
   });
@@ -167,7 +160,7 @@ describe("QuotesController", () => {
 
     beforeEach(() => {
       addQuoteMock.mockClear();
-      addQuoteMock.mockResolvedValue({} as any);
+      addQuoteMock.mockResolvedValue({});
 
       verifyCaptchaMock.mockClear();
       verifyCaptchaMock.mockResolvedValue(true);
@@ -199,7 +192,7 @@ describe("QuotesController", () => {
         newQuote.text,
         newQuote.source,
         newQuote.language,
-        uid
+        uid,
       );
 
       expect(verifyCaptchaMock).toHaveBeenCalledWith(newQuote.captcha);
@@ -209,7 +202,7 @@ describe("QuotesController", () => {
     });
     it("should fail if feature is disabled", async () => {
       //GIVEN
-      enableQuotes(false);
+      await enableQuotes(false);
 
       //WHEN
       const { body } = await mockApp
@@ -219,7 +212,7 @@ describe("QuotesController", () => {
 
       //THEN
       expect(body.message).toEqual(
-        "Quote submission is disabled temporarily. The queue is quite long and we need some time to catch up."
+        "Quote submission is disabled temporarily. The queue is quite long and we need some time to catch up.",
       );
     });
     it("should fail without mandatory properties", async () => {
@@ -322,7 +315,7 @@ describe("QuotesController", () => {
         quoteId,
         "editedText",
         "editedSource",
-        "Bob"
+        "Bob",
       );
     });
     it("should approve with optional parameters as null", async () => {
@@ -350,7 +343,7 @@ describe("QuotesController", () => {
         quoteId,
         undefined,
         undefined,
-        "Bob"
+        "Bob",
       );
     });
     it("should approve without optional parameters", async () => {
@@ -378,7 +371,7 @@ describe("QuotesController", () => {
         quoteId,
         undefined,
         undefined,
-        "Bob"
+        "Bob",
       );
     });
     it("should fail without mandatory properties", async () => {
@@ -762,8 +755,8 @@ describe("QuotesController", () => {
     const verifyCaptchaMock = vi.spyOn(Captcha, "verify");
     const createReportMock = vi.spyOn(ReportDal, "createReport");
 
-    beforeEach(() => {
-      enableQuoteReporting(true);
+    beforeEach(async () => {
+      await enableQuoteReporting(true);
 
       verifyCaptchaMock.mockClear().mockResolvedValue(true);
       createReportMock.mockClear().mockResolvedValue();
@@ -801,7 +794,7 @@ describe("QuotesController", () => {
           comment: "I don't like this.",
         }),
         10, //configuration maxReport
-        20 //configuration contentReportLimit
+        20, //configuration contentReportLimit
       );
     });
 
@@ -850,7 +843,7 @@ describe("QuotesController", () => {
     });
     it("should fail if feature is disabled", async () => {
       //GIVEN
-      enableQuoteReporting(false);
+      await enableQuoteReporting(false);
 
       //WHEN
       const { body } = await mockApp
@@ -880,21 +873,24 @@ describe("QuotesController", () => {
 });
 
 async function enableQuotes(enabled: boolean): Promise<void> {
-  const mockConfig = _.merge(await configuration, {
-    quotes: { submissionsEnabled: enabled },
-  });
+  const mockConfig = await configuration;
+  mockConfig.quotes = { ...mockConfig.quotes, submissionsEnabled: enabled };
 
   vi.spyOn(Configuration, "getCachedConfiguration").mockResolvedValue(
-    mockConfig
+    mockConfig,
   );
 }
 
 async function enableQuoteReporting(enabled: boolean): Promise<void> {
-  const mockConfig = _.merge(await configuration, {
-    quotes: { reporting: { enabled, maxReports: 10, contentReportLimit: 20 } },
-  });
+  const mockConfig = await configuration;
+  mockConfig.quotes.reporting = {
+    ...mockConfig.quotes.reporting,
+    enabled,
+    maxReports: 10,
+    contentReportLimit: 20,
+  };
 
   vi.spyOn(Configuration, "getCachedConfiguration").mockResolvedValue(
-    mockConfig
+    mockConfig,
   );
 }

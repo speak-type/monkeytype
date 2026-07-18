@@ -1,19 +1,23 @@
 import * as ConfigSchemas from "@monkeytype/schemas/configs";
 import * as SoundController from "../controllers/sound-controller";
 import * as TestLogic from "../test/test-logic";
-import { getLanguageDisplayString } from "../utils/strings";
-import * as ModesNotice from "../elements/modes-notice";
-import { isAuthenticated } from "../firebase";
-import * as ManualRestart from "../test/manual-restart-tracker";
+import {
+  getLanguageDisplayString,
+  replaceUnderscoresWithSpaces,
+} from "../utils/strings";
+
 import { areUnsortedArraysEqual } from "../utils/arrays";
-import Config from "../config";
+import { Config } from "../config/store";
 import { get as getTypingSpeedUnit } from "../utils/typing-speed-units";
-import { Validation } from "../elements/input-validation";
-import * as ActivePage from "../states/active-page";
+import { getActivePage, isAuthenticated } from "../states/core";
 import { Fonts } from "../constants/fonts";
 import { KnownFontName } from "@monkeytype/schemas/fonts";
 import * as UI from "../ui";
-import { typedKeys } from "../utils/misc";
+import { Validation } from "../types/validation";
+import { typedKeys } from "@monkeytype/util/objects";
+
+//TODO: remove display property and instead use optionsMetadata from configMetadata
+// eventually this file should be fully merged into config metadata, probably under the 'commandline' property
 
 type ConfigKeysWithoutCommands =
   | "minWpmCustomSpeed"
@@ -66,7 +70,7 @@ export type SecondaryInputProps<T extends keyof ConfigSchemas.Config> = {
 
 export type CommandlineConfigMetadata<
   T extends keyof ConfigSchemas.Config,
-  T2 extends keyof ConfigSchemas.Config
+  T2 extends keyof ConfigSchemas.Config,
 > = {
   alias?: string;
   display?: string;
@@ -82,7 +86,7 @@ export type SubgroupProps<T extends keyof ConfigSchemas.Config> = {
   isVisible?: (value: ConfigSchemas.Config[T]) => boolean;
   isAvailable?: (value: ConfigSchemas.Config[T]) => (() => boolean) | undefined;
   customData?: (
-    value: ConfigSchemas.Config[T]
+    value: ConfigSchemas.Config[T],
   ) => Record<string, string | boolean>;
   hover?: (value: ConfigSchemas.Config[T]) => void;
   afterExec?: (value: ConfigSchemas.Config[T]) => void;
@@ -112,7 +116,6 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: [10, 25, 50, 100],
       afterExec: () => {
-        ManualRestart.set();
         TestLogic.restart();
       },
     },
@@ -120,7 +123,6 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
       inputValueConvert: Number,
 
       afterExec: () => {
-        ManualRestart.set();
         TestLogic.restart();
       },
     },
@@ -129,14 +131,12 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: [15, 30, 60, 120],
       afterExec: () => {
-        ManualRestart.set();
         TestLogic.restart();
       },
     },
     input: {
       inputValueConvert: Number,
       afterExec: () => {
-        ManualRestart.set();
         TestLogic.restart();
       },
     },
@@ -145,7 +145,6 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: "fromSchema",
       afterExec: () => {
-        ManualRestart.set();
         TestLogic.restart();
       },
     },
@@ -204,6 +203,13 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: "fromSchema",
     },
+  },
+  resultSaving: {
+    subgroup: {
+      options: "fromSchema",
+      alias: (val) => (val ? "enabled" : "disabled"),
+    },
+    alias: "results practice incognito",
   },
   blindMode: {
     subgroup: {
@@ -278,7 +284,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
       inputValueConvert: (val) =>
         val.trim().split(" ") as ConfigSchemas.CustomPolyglot,
       afterExec: () => {
-        if (ActivePage.get() === "test") {
+        if (getActivePage() === "test") {
           TestLogic.restart();
         }
       },
@@ -298,9 +304,6 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
   oppositeShiftMode: {
     subgroup: {
       options: "fromSchema",
-      afterExec: () => {
-        void ModesNotice.update();
-      },
     },
   },
   stopOnError: {
@@ -323,6 +326,11 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
       options: "fromSchema",
     },
   },
+  compositionDisplay: {
+    subgroup: {
+      options: "fromSchema",
+    },
+  },
   hideExtraLetters: {
     subgroup: {
       options: "fromSchema",
@@ -331,6 +339,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
   lazyMode: {
     subgroup: {
       options: "fromSchema",
+      afterExec: () => TestLogic.restart(),
     },
   },
   layout: {
@@ -385,6 +394,17 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
           "13": "wholetone",
           "14": "fist fight",
           "15": "rubber keys",
+          "16": "fart",
+          "17": "akko lavenders",
+          "18": "cherrymx black abs",
+          "19": "cherrymx black pbt",
+          "20": "cherrymx blue abs",
+          "21": "cherrymx blue pbt",
+          "22": "cherrymx brown pbt",
+          "23": "kalih box white",
+          "24": "razer green",
+          "25": "tealios v2",
+          "26": "trust gxt",
         };
         return map[value];
       },
@@ -456,7 +476,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
   caretStyle: {
     subgroup: {
       options: "fromSchema",
-      isVisible: (value) => !["banana", "carrot"].includes(value),
+      isVisible: (value) => !["banana", "carrot", "monkey"].includes(value),
     },
   },
   paceCaret: {
@@ -488,7 +508,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
   paceCaretStyle: {
     subgroup: {
       options: "fromSchema",
-      isVisible: (value) => !["banana", "carrot"].includes(value),
+      isVisible: (value) => !["banana", "carrot", "monkey"].includes(value),
     },
   },
 
@@ -512,8 +532,10 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     alias: "wpm",
   },
   timerStyle: {
-    display: "Live progress style...",
-    subgroup: { options: "fromSchema" },
+    subgroup: {
+      options: "fromSchema",
+      display: replaceUnderscoresWithSpaces,
+    },
     alias: "timer",
   },
   timerColor: {
@@ -533,6 +555,12 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     },
   },
   highlightMode: {
+    subgroup: {
+      options: "fromSchema",
+      display: replaceUnderscoresWithSpaces,
+    },
+  },
+  typedEffect: {
     subgroup: {
       options: "fromSchema",
     },
@@ -588,8 +616,8 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: typedKeys(Fonts).sort((a, b) =>
         (Fonts[a]?.display ?? a.replace(/_/g, " ")).localeCompare(
-          Fonts[b]?.display ?? b.replace(/_/g, " ")
-        )
+          Fonts[b]?.display ?? b.replace(/_/g, " "),
+        ),
       ),
       display: (name) =>
         Fonts[name as KnownFontName]?.display ?? name.replaceAll(/_/g, " "),
@@ -615,6 +643,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
   keymapStyle: {
     subgroup: {
       options: "fromSchema",
+      display: replaceUnderscoresWithSpaces,
     },
     alias: "keyboard",
   },
@@ -640,9 +669,10 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
       afterExec: () => TestLogic.restart(),
     },
   },
-  keymapShowTopRow: {
+  keymapKeys: {
     subgroup: {
       options: "fromSchema",
+      display: replaceUnderscoresWithSpaces,
     },
     alias: "keyboard",
   },
@@ -701,6 +731,12 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
     subgroup: {
       options: "fromSchema",
     },
+  },
+  showPb: {
+    subgroup: {
+      options: "fromSchema",
+    },
+    alias: "pb",
   },
   monkeyPowerLevel: {
     alias: "powermode",
